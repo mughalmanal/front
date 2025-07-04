@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import apiClient from "../../apiClient";
+""import React, { useState, useEffect } from "react";
+import axios from "axios";
+
+const backendURL = "https://back-8.onrender.com/api/invoices";
 
 function CreateInvoice() {
   const [client, setClient] = useState("");
@@ -8,6 +10,8 @@ function CreateInvoice() {
   const [remarks, setRemarks] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState([{ name: "", quantity: 1, price: 0 }]);
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(null);
 
   const handleItemChange = (index, field, value) => {
     const updatedItems = [...items];
@@ -31,6 +35,8 @@ function CreateInvoice() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
+    setSuccess(null);
 
     const invoiceData = {
       client,
@@ -42,18 +48,17 @@ function CreateInvoice() {
     };
 
     try {
-      await apiClient.post("/invoices", invoiceData);
-      alert("✅ Invoice saved successfully!");
-
-      // Reset form
+      await axios.post(backendURL, invoiceData);
+      setSuccess("Invoice saved successfully!");
       setClient("");
       setInvoiceDate("");
       setDueDate("");
       setRemarks("");
       setItems([{ name: "", quantity: 1, price: 0 }]);
     } catch (err) {
-      console.error("❌ Failed to save invoice:", err);
-      alert("Failed to save invoice.");
+      alert("Failed to save invoice. Check backend connectivity.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -128,7 +133,9 @@ function CreateInvoice() {
                     <input
                       type="text"
                       value={item.name}
-                      onChange={(e) => handleItemChange(idx, "name", e.target.value)}
+                      onChange={(e) =>
+                        handleItemChange(idx, "name", e.target.value)
+                      }
                       className="p-1 border rounded w-full"
                       required
                     />
@@ -138,7 +145,9 @@ function CreateInvoice() {
                       type="number"
                       min="1"
                       value={item.quantity}
-                      onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
+                      onChange={(e) =>
+                        handleItemChange(idx, "quantity", e.target.value)
+                      }
                       className="p-1 border rounded w-20"
                       required
                     />
@@ -149,7 +158,9 @@ function CreateInvoice() {
                       min="0"
                       step="0.01"
                       value={item.price}
-                      onChange={(e) => handleItemChange(idx, "price", e.target.value)}
+                      onChange={(e) =>
+                        handleItemChange(idx, "price", e.target.value)
+                      }
                       className="p-1 border rounded w-24"
                       required
                     />
@@ -199,11 +210,13 @@ function CreateInvoice() {
           </div>
           <button
             type="submit"
+            disabled={saving}
             className="px-6 py-2 bg-blue-900 text-white rounded hover:bg-blue-800"
           >
-            Save Invoice
+            {saving ? "Saving..." : "Save Invoice"}
           </button>
         </div>
+        {success && <p className="text-green-600 text-sm mt-2">{success}</p>}
       </form>
     </div>
   );
