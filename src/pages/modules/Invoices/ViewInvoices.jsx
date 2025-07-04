@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import apiClient from "../../apiClient";
 
 function ViewInvoices() {
   const [invoices, setInvoices] = useState([]);
@@ -7,19 +8,27 @@ function ViewInvoices() {
   const [editedInvoice, setEditedInvoice] = useState({});
 
   useEffect(() => {
-    const localData = localStorage.getItem("invoices");
-    if (localData) {
-      setInvoices(JSON.parse(localData));
-    }
+    fetchInvoices();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem("invoices", JSON.stringify(invoices));
-  }, [invoices]);
+  const fetchInvoices = async () => {
+    try {
+      const res = await apiClient.get("/invoices");
+      setInvoices(res.data);
+    } catch (error) {
+      console.error("Failed to fetch invoices", error);
+    }
+  };
 
-  const handleDelete = (id) => {
-    const updated = invoices.filter((inv) => inv._id !== id);
-    setInvoices(updated);
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this invoice?")) return;
+
+    try {
+      await apiClient.delete(`/invoices/${id}`);
+      setInvoices(invoices.filter((inv) => inv._id !== id));
+    } catch (error) {
+      console.error("Delete failed", error);
+    }
   };
 
   const handleEdit = (invoice) => {
@@ -27,12 +36,17 @@ function ViewInvoices() {
     setEditedInvoice({ ...invoice });
   };
 
-  const handleSaveEdit = () => {
-    const updated = invoices.map((inv) =>
-      inv._id === editingId ? editedInvoice : inv
-    );
-    setInvoices(updated);
-    setEditingId(null);
+  const handleSaveEdit = async () => {
+    try {
+      await apiClient.put(`/invoices/${editingId}`, editedInvoice);
+      const updated = invoices.map((inv) =>
+        inv._id === editingId ? editedInvoice : inv
+      );
+      setInvoices(updated);
+      setEditingId(null);
+    } catch (err) {
+      console.error("Update failed", err);
+    }
   };
 
   const handlePrint = (inv) => {
@@ -61,10 +75,12 @@ function ViewInvoices() {
               <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
             </thead>
             <tbody>
-              ${inv.items.map(
-                (item) =>
-                  `<tr><td>${item.name}</td><td>${item.quantity}</td><td>${item.price}</td><td>${item.quantity * item.price}</td></tr>`
-              ).join("")}
+              ${inv.items
+                .map(
+                  (item) =>
+                    `<tr><td>${item.name}</td><td>${item.quantity}</td><td>${item.price}</td><td>${item.quantity * item.price}</td></tr>`
+                )
+                .join("")}
             </tbody>
           </table>
           <h3>Total: PKR ${inv.total}</h3>
@@ -75,9 +91,10 @@ function ViewInvoices() {
     printWindow.print();
   };
 
-  const filtered = invoices.filter((inv) =>
-    (inv.client || "").toLowerCase().includes(search.toLowerCase()) ||
-    (inv._id || "").toLowerCase().includes(search.toLowerCase())
+  const filtered = invoices.filter(
+    (inv) =>
+      (inv.client || "").toLowerCase().includes(search.toLowerCase()) ||
+      (inv._id || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -114,7 +131,10 @@ function ViewInvoices() {
                     <input
                       value={editedInvoice.client}
                       onChange={(e) =>
-                        setEditedInvoice({ ...editedInvoice, client: e.target.value })
+                        setEditedInvoice({
+                          ...editedInvoice,
+                          client: e.target.value,
+                        })
                       }
                       className="border p-1 w-full"
                     />
@@ -124,7 +144,10 @@ function ViewInvoices() {
                       type="date"
                       value={editedInvoice.invoiceDate}
                       onChange={(e) =>
-                        setEditedInvoice({ ...editedInvoice, invoiceDate: e.target.value })
+                        setEditedInvoice({
+                          ...editedInvoice,
+                          invoiceDate: e.target.value,
+                        })
                       }
                       className="border p-1 w-full"
                     />
@@ -134,7 +157,10 @@ function ViewInvoices() {
                       type="date"
                       value={editedInvoice.dueDate}
                       onChange={(e) =>
-                        setEditedInvoice({ ...editedInvoice, dueDate: e.target.value })
+                        setEditedInvoice({
+                          ...editedInvoice,
+                          dueDate: e.target.value,
+                        })
                       }
                       className="border p-1 w-full"
                     />
@@ -144,7 +170,10 @@ function ViewInvoices() {
                       type="number"
                       value={editedInvoice.total}
                       onChange={(e) =>
-                        setEditedInvoice({ ...editedInvoice, total: parseFloat(e.target.value) })
+                        setEditedInvoice({
+                          ...editedInvoice,
+                          total: parseFloat(e.target.value),
+                        })
                       }
                       className="border p-1 w-24"
                     />
