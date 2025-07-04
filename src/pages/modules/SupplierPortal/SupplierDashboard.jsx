@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   PieChart,
   Pie,
@@ -14,31 +14,38 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-
-// Dummy data
-const ordersData = [
-  { name: "Pending", value: 12 },
-  { name: "Completed", value: 22 },
-  { name: "Cancelled", value: 6 },
-];
-
-const shipmentsData = [
-  { month: "Jan", shipments: 10 },
-  { month: "Feb", shipments: 14 },
-  { month: "Mar", shipments: 9 },
-  { month: "Apr", shipments: 15 },
-  { month: "May", shipments: 12 },
-];
-
-const inventoryData = [
-  { product: "Fabric", qty: 100 },
-  { product: "Kurtis", qty: 250 },
-  { product: "Dupattas", qty: 75 },
-];
+import axios from "axios";
 
 const COLORS = ["#007bff", "#28a745", "#dc3545"];
 
 const SupplierDashboard = () => {
+  const [ordersData, setOrdersData] = useState([]);
+  const [shipmentsData, setShipmentsData] = useState([]);
+  const [inventoryData, setInventoryData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const backendURL = "https://back-7-9sog.onrender.com";
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${backendURL}/api/dashboard/summary`);
+      const { ordersByStatus, monthlyShipments, inventoryLevels } = res.data;
+      setOrdersData(ordersByStatus);
+      setShipmentsData(monthlyShipments);
+      setInventoryData(inventoryLevels);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  if (loading) return <div className="text-blue-900 text-center py-8">Loading dashboard...</div>;
+
   return (
     <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
       {/* Orders Pie Chart */}
