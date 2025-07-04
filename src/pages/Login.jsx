@@ -23,7 +23,7 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await axios.post("https://back-7-9sog.onrender.com/api/auth/login", {
+      const res = await axios.post("https://back-8.onrender.com/api/auth/login", {
         email,
         password,
       });
