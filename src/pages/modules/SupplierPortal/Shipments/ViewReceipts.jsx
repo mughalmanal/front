@@ -1,43 +1,84 @@
-import React, { useState } from "react";
-
-const dummyReceipts = [
-  {
-    id: 1,
-    receiptNumber: "RCPT-001",
-    shipmentNumber: "SHIP-789",
-    date: "2025-07-04",
-    supplier: "Textile Co.",
-    status: "Received",
-    items: [
-      { name: "Kurti", qty: 10 },
-      { name: "Shalwar", qty: 15 },
-    ],
-  },
-  {
-    id: 2,
-    receiptNumber: "RCPT-002",
-    shipmentNumber: "SHIP-790",
-    date: "2025-07-03",
-    supplier: "Lawn World",
-    status: "Pending",
-    items: [
-      { name: "Dupatta", qty: 20 },
-    ],
-  },
-];
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const ViewReceipts = () => {
   const [search, setSearch] = useState("");
   const [expandedRow, setExpandedRow] = useState(null);
+  const [receipts, setReceipts] = useState([]);
+  const [printData, setPrintData] = useState([]);
+  const [showPrint, setShowPrint] = useState(false);
 
-  const filtered = dummyReceipts.filter((r) =>
+  const backendURL = "https://back-7-9sog.onrender.com";
+
+  const fetchReceipts = async () => {
+    try {
+      const res = await axios.get(`${backendURL}/api/receipts`);
+      setReceipts(res.data);
+    } catch (err) {
+      console.error("Error fetching receipts", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReceipts();
+  }, []);
+
+  const filtered = receipts.filter((r) =>
     r.receiptNumber.toLowerCase().includes(search.toLowerCase()) ||
     r.shipmentNumber.toLowerCase().includes(search.toLowerCase()) ||
     r.supplier.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleExport = (type) => {
-    alert(`Exporting as ${type}... (to be implemented)`);
+    if (type === "CSV") {
+      const headers = ["Receipt #", "Shipment #", "Supplier", "Date", "Status"];
+      const rows = filtered.map((r) => [
+        r.receiptNumber,
+        r.shipmentNumber,
+        r.supplier,
+        r.date,
+        r.status,
+      ]);
+
+      let csv = headers.join(",") + "\n";
+      rows.forEach((row) => {
+        csv += row.join(",") + "\n";
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "receipts.csv";
+      link.click();
+    }
+
+    if (type === "PDF") {
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text("Receipts - ASIF AND BROTHERS", 14, 20);
+      autoTable(doc, {
+        startY: 30,
+        head: [["Receipt #", "Shipment #", "Supplier", "Date", "Status"]],
+        body: filtered.map((r) => [
+          r.receiptNumber,
+          r.shipmentNumber,
+          r.supplier,
+          r.date,
+          r.status,
+        ]),
+      });
+      doc.save("receipts.pdf");
+    }
+  };
+
+  const handlePrint = (receipt) => {
+    setPrintData(receipt);
+    setShowPrint(true);
+    setTimeout(() => {
+      window.print();
+    }, 500);
   };
 
   return (
@@ -81,7 +122,7 @@ const ViewReceipts = () => {
         </thead>
         <tbody>
           {filtered.map((receipt) => (
-            <React.Fragment key={receipt.id}>
+            <React.Fragment key={receipt._id}>
               <tr className="border-t border-gray-200">
                 <td className="p-2">{receipt.receiptNumber}</td>
                 <td className="p-2">{receipt.shipmentNumber}</td>
@@ -98,18 +139,24 @@ const ViewReceipts = () => {
                     {receipt.status}
                   </span>
                 </td>
-                <td className="p-2">
+                <td className="p-2 flex gap-3">
                   <button
                     onClick={() =>
-                      setExpandedRow(expandedRow === receipt.id ? null : receipt.id)
+                      setExpandedRow(expandedRow === receipt._id ? null : receipt._id)
                     }
                     className="text-blue-900 underline text-sm"
                   >
-                    {expandedRow === receipt.id ? "Hide Items" : "View Items"}
+                    {expandedRow === receipt._id ? "Hide Items" : "View Items"}
+                  </button>
+                  <button
+                    onClick={() => handlePrint(receipt)}
+                    className="text-green-800 underline text-sm"
+                  >
+                    Print
                   </button>
                 </td>
               </tr>
-              {expandedRow === receipt.id && (
+              {expandedRow === receipt._id && (
                 <tr className="bg-blue-50">
                   <td colSpan="6" className="p-4">
                     <strong>Items:</strong>
@@ -127,6 +174,84 @@ const ViewReceipts = () => {
           ))}
         </tbody>
       </table>
+
+      {/* Printable view */}
+      {showPrint && (
+        <div style={{ display: "block" }} className="print-preview">
+          <style>
+            {`
+              @media print {
+                body * {
+                  visibility: hidden;
+                }
+                .print-preview, .print-preview * {
+                  visibility: visible;
+                }
+                .print-preview {
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  padding: 40px;
+                  font-family: 'Segoe UI', sans-serif;
+                  width: 100%;
+                }
+              }
+            `}
+          </style>
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-blue-900">ASIF AND BROTHERS</h1>
+            <p className="text-sm text-gray-600">Receipt Summary</p>
+            <hr className="my-4 border-t border-gray-300" />
+          </div>
+
+          <table className="w-full text-sm border-collapse mb-6">
+            <tbody>
+              <tr>
+                <td className="font-semibold">Receipt #</td>
+                <td>{printData.receiptNumber}</td>
+              </tr>
+              <tr>
+                <td className="font-semibold">Shipment #</td>
+                <td>{printData.shipmentNumber}</td>
+              </tr>
+              <tr>
+                <td className="font-semibold">Supplier</td>
+                <td>{printData.supplier}</td>
+              </tr>
+              <tr>
+                <td className="font-semibold">Date</td>
+                <td>{printData.date}</td>
+              </tr>
+              <tr>
+                <td className="font-semibold">Status</td>
+                <td>{printData.status}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <h3 className="text-lg font-bold text-blue-900 mb-2">Items</h3>
+          <table className="w-full text-sm border border-gray-300">
+            <thead>
+              <tr className="bg-blue-100">
+                <th className="p-2 text-left">Item</th>
+                <th className="p-2 text-left">Quantity</th>
+              </tr>
+            </thead>
+            <tbody>
+              {printData.items?.map((item, idx) => (
+                <tr key={idx}>
+                  <td className="p-2">{item.name}</td>
+                  <td className="p-2">{item.qty}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <p className="text-right mt-6 text-sm text-gray-600">
+            Printed on: {new Date().toLocaleString()}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
