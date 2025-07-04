@@ -38,13 +38,16 @@ const ManageAgreements = () => {
     }
   };
 
+  // Filtering agreements by search and status
   const filtered = agreements.filter(a => {
-    const matchesSearch = a.agreementNumber.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch =
+      a.agreementNumber.toLowerCase().includes(search.toLowerCase()) ||
       a.vendor.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'All' || a.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
+  // Export to PDF using jsPDF and autotable
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.text('Agreements Report', 14, 14);
@@ -62,6 +65,7 @@ const ManageAgreements = () => {
     doc.save('agreements.pdf');
   };
 
+  // Export to CSV using papaparse
   const handleExportCSV = () => {
     const csv = Papa.unparse(
       filtered.map(a => ({
@@ -98,24 +102,31 @@ const ManageAgreements = () => {
   };
 
   const openEdit = (a) => {
-    setCurrent({ ...a, file: null });
+    setCurrent({ ...a, file: null }); // clear file on edit (user must re-upload if needed)
     setIsEditing(true);
     setModalVisible(true);
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this agreement?')) return;
-    const token = localStorage.getItem('token');
-    await axios.delete(`https://back-7-9sog.onrender.com/api/agreements/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    fetchAgreements();
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`https://back-7-9sog.onrender.com/api/agreements/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchAgreements();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete agreement');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     const formData = new FormData();
+
+    // Append form fields including file if uploaded
     for (const key in current) {
       if (key === 'file' && current.file) {
         formData.append('file', current.file);
@@ -129,19 +140,20 @@ const ManageAgreements = () => {
         await axios.put(
           `https://back-7-9sog.onrender.com/api/agreements/${current._id}`,
           formData,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
         );
       } else {
         await axios.post(
           `https://back-7-9sog.onrender.com/api/agreements`,
           formData,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
         );
       }
       setModalVisible(false);
       fetchAgreements();
     } catch (err) {
       console.error(err);
+      alert('Failed to save agreement');
     }
   };
 
@@ -176,7 +188,7 @@ const ManageAgreements = () => {
         </thead>
         <tbody>
           {filtered.map((a, i) => (
-            <tr key={i}>
+            <tr key={a._id || i}>
               <td>{a.agreementNumber}</td>
               <td>{a.vendor}</td>
               <td>{a.type}</td>
@@ -186,6 +198,11 @@ const ManageAgreements = () => {
               <td>
                 <button className="btn" onClick={() => openEdit(a)}>Edit</button>
                 <button className="btn btn-delete" onClick={() => handleDelete(a._id)}>Delete</button>
+                {a.fileUrl && (
+                  <a href={a.fileUrl} target="_blank" rel="noreferrer" className="btn btn-view">
+                    View PDF
+                  </a>
+                )}
               </td>
             </tr>
           ))}
@@ -198,38 +215,66 @@ const ManageAgreements = () => {
             <h3>{isEditing ? 'Edit Agreement' : 'Add Agreement'}</h3>
 
             <label>Agreement Number</label>
-            <input type="text" value={current.agreementNumber} required
-              onChange={(e) => setCurrent({ ...current, agreementNumber: e.target.value })} />
+            <input
+              type="text"
+              value={current.agreementNumber}
+              required
+              onChange={(e) => setCurrent({ ...current, agreementNumber: e.target.value })}
+            />
 
             <label>Vendor</label>
-            <input type="text" value={current.vendor} required
-              onChange={(e) => setCurrent({ ...current, vendor: e.target.value })} />
+            <input
+              type="text"
+              value={current.vendor}
+              required
+              onChange={(e) => setCurrent({ ...current, vendor: e.target.value })}
+            />
 
             <label>Type</label>
-            <input type="text" value={current.type} required
-              onChange={(e) => setCurrent({ ...current, type: e.target.value })} />
+            <input
+              type="text"
+              value={current.type}
+              required
+              onChange={(e) => setCurrent({ ...current, type: e.target.value })}
+            />
 
             <label>Effective Date</label>
-            <input type="date" value={current.effectiveDate}
-              onChange={(e) => setCurrent({ ...current, effectiveDate: e.target.value })} required />
+            <input
+              type="date"
+              value={current.effectiveDate}
+              required
+              onChange={(e) => setCurrent({ ...current, effectiveDate: e.target.value })}
+            />
 
             <label>Expiry Date</label>
-            <input type="date" value={current.expiryDate}
-              onChange={(e) => setCurrent({ ...current, expiryDate: e.target.value })} required />
+            <input
+              type="date"
+              value={current.expiryDate}
+              required
+              onChange={(e) => setCurrent({ ...current, expiryDate: e.target.value })}
+            />
 
             <label>Status</label>
-            <select value={current.status} onChange={(e) => setCurrent({ ...current, status: e.target.value })}>
+            <select
+              value={current.status}
+              onChange={(e) => setCurrent({ ...current, status: e.target.value })}
+            >
               <option value="Active">Active</option>
               <option value="Expired">Expired</option>
             </select>
 
             <label>Notes (optional)</label>
-            <textarea value={current.notes}
-              onChange={(e) => setCurrent({ ...current, notes: e.target.value })}></textarea>
+            <textarea
+              value={current.notes}
+              onChange={(e) => setCurrent({ ...current, notes: e.target.value })}
+            ></textarea>
 
             <label>Upload Agreement (PDF)</label>
-            <input type="file" accept="application/pdf"
-              onChange={(e) => setCurrent({ ...current, file: e.target.files[0] })} />
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => setCurrent({ ...current, file: e.target.files[0] })}
+            />
 
             <div className="form-actions">
               <button type="submit" className="btn">Save</button>
