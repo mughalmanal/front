@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import apiClient from "../../apiClient";
 
 function PaymentEntries() {
   const [payments, setPayments] = useState([]);
@@ -13,44 +14,68 @@ function PaymentEntries() {
   const [editForm, setEditForm] = useState({});
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    fetchPayments();
+  }, []);
+
+  const fetchPayments = async () => {
+    try {
+      const res = await apiClient.get("/payments");
+      setPayments(res.data);
+    } catch (err) {
+      console.error("Error fetching payments", err);
+    }
+  };
+
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleEditChange = (e) =>
     setEditForm({ ...editForm, [e.target.name]: e.target.value });
 
-  const handleAddPayment = (e) => {
+  const handleAddPayment = async (e) => {
     e.preventDefault();
-    const newPayment = {
-      ...form,
-      id: Date.now(),
-    };
-    setPayments([newPayment, ...payments]);
-    setForm({
-      payer: "",
-      amount: "",
-      method: "Cash",
-      date: "",
-      notes: "",
-    });
+    try {
+      const res = await apiClient.post("/payments", form);
+      setPayments([res.data, ...payments]);
+      setForm({
+        payer: "",
+        amount: "",
+        method: "Cash",
+        date: "",
+        notes: "",
+      });
+    } catch (err) {
+      console.error("Error adding payment", err);
+    }
   };
 
-  const handleDelete = (id) =>
-    setPayments(payments.filter((p) => p.id !== id));
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this payment?")) return;
+    try {
+      await apiClient.delete(`/payments/${id}`);
+      setPayments(payments.filter((p) => p._id !== id));
+    } catch (err) {
+      console.error("Error deleting payment", err);
+    }
+  };
 
   const handleEdit = (payment) => {
-    setEditingId(payment.id);
+    setEditingId(payment._id);
     setEditForm(payment);
   };
 
-  const handleSaveEdit = () => {
-    setPayments(
-      payments.map((p) =>
-        p.id === editingId ? editForm : p
-      )
-    );
-    setEditingId(null);
-    setEditForm({});
+  const handleSaveEdit = async () => {
+    try {
+      const res = await apiClient.put(`/payments/${editingId}`, editForm);
+      setPayments(
+        payments.map((p) => (p._id === editingId ? res.data : p))
+      );
+      setEditingId(null);
+      setEditForm({});
+    } catch (err) {
+      console.error("Error updating payment", err);
+    }
   };
 
   const filteredPayments = payments.filter((p) =>
@@ -119,9 +144,7 @@ function PaymentEntries() {
 
       {/* Search */}
       <div className="flex justify-between items-center mb-3">
-        <h3 className="text-md font-semibold text-blue-800">
-          Payment History
-        </h3>
+        <h3 className="text-md font-semibold text-blue-800">Payment History</h3>
         <input
           type="text"
           placeholder="Search by name..."
@@ -147,8 +170,8 @@ function PaymentEntries() {
           <tbody>
             {filteredPayments.length > 0 ? (
               filteredPayments.map((p) => (
-                <tr key={p.id} className="border-t hover:bg-gray-50">
-                  {editingId === p.id ? (
+                <tr key={p._id} className="border-t hover:bg-gray-50">
+                  {editingId === p._id ? (
                     <>
                       <td className="p-1">
                         <input
@@ -229,7 +252,7 @@ function PaymentEntries() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(p.id)}
+                          onClick={() => handleDelete(p._id)}
                           className="text-red-600 hover:underline"
                         >
                           Delete
