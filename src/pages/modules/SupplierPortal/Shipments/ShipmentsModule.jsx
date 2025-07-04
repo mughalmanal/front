@@ -16,7 +16,7 @@ const tabs = [
 ];
 
 const ShipmentsModule = () => {
-  const [activeTab, setActiveTab] = useState(null); // Don't show anything by default
+  const [activeTab, setActiveTab] = useState(null);
 
   return (
     <div className="bg-white p-6 rounded-xl shadow border border-blue-100">
@@ -41,7 +41,7 @@ const ShipmentsModule = () => {
 
       {/* Tab Content */}
       {activeTab ? (
-        <div className="min-h-[300px]">
+        <div className="min-h-[400px] animate-fade-in">
           {tabs.find((t) => t.name === activeTab)?.component}
         </div>
       ) : (
