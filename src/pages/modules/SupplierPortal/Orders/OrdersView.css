@@ -1,0 +1,104 @@
+.orders-view {
+  padding: 40px;
+  background: #f9fafb;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.heading {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 20px;
+}
+
+.orders-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.orders-controls input,
+.orders-controls select {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1.5px solid #3b82f6;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+}
+
+.orders-table th,
+.orders-table td {
+  padding: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+  text-align: left;
+  background-color: white;
+}
+
+.status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 13px;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status.completed {
+  background: #bbf7d0;
+  color: #065f46;
+}
+
+.status.cancelled {
+  background: #fecaca;
+  color: #991b1b;
+}
+
+.btn {
+  padding: 8px 14px;
+  background: #3b82f6;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-export {
+  background: #10b981;
+}
+
+.btn-export:hover {
+  background: #059669;
+}
+
+.btn-view {
+  background: #64748b;
+}
+
+.btn-view:hover {
+  background: #475569;
+}
+
+.expanded-row td {
+  background: #f1f5f9;
+  padding: 20px;
+}
+
+.expanded-row ul {
+  margin-top: 8px;
+  padding-left: 20px;
+}

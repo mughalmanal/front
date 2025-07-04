@@ -1,0 +1,108 @@
+.manage-orders {
+  padding: 40px;
+  background: #f8fafc;
+  min-height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.heading {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 20px;
+  border-bottom: 3px solid #3b82f6;
+  width: fit-content;
+  padding-bottom: 6px;
+}
+
+.order-controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 25px;
+  align-items: center;
+}
+
+.order-controls input {
+  padding: 10px 16px;
+  border: 2px solid #3b82f6;
+  border-radius: 8px;
+  font-size: 15px;
+  min-width: 260px;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.1);
+  transition: 0.3s;
+}
+
+.order-controls input:focus {
+  outline: none;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+}
+
+.refresh-btn {
+  padding: 10px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.refresh-btn:hover {
+  background: #2563eb;
+}
+
+.order-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 10px;
+}
+
+.order-table th {
+  background: #e2e8f0;
+  color: #334155;
+  text-align: left;
+  font-size: 13px;
+  padding: 12px;
+  text-transform: uppercase;
+  border-radius: 6px 6px 0 0;
+}
+
+.order-table td {
+  background: white;
+  padding: 14px;
+  font-size: 14px;
+  color: #1f2937;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.order-table tr {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+}
+
+.status {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.status.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.status.completed {
+  background: #bbf7d0;
+  color: #15803d;
+}
+
+.status.cancelled {
+  background: #fecaca;
+  color: #b91c1c;
+}
