@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -8,6 +8,14 @@ function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // 🚀 Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      navigate("/dashboard");
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,7 +76,10 @@ function Login() {
             <label className="flex items-center">
               <input type="checkbox" className="mr-2" /> Remember me
             </label>
-            <a href="#" className="text-blue-600 hover:underline">
+            <a
+              href="/forgot-password" // ✅ Now this links to an actual route
+              className="text-blue-600 hover:underline"
+            >
               Forgot password?
             </a>
           </div>
