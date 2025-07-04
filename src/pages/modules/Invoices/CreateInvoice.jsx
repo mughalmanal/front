@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import apiClient from "../../apiClient";
 
 function CreateInvoice() {
   const [client, setClient] = useState("");
@@ -28,7 +29,7 @@ function CreateInvoice() {
   const calculateSubtotal = () =>
     items.reduce((total, item) => total + item.quantity * item.price, 0);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const invoiceData = {
@@ -40,16 +41,20 @@ function CreateInvoice() {
       total: calculateSubtotal(),
     };
 
-    // Print to console instead of sending to backend
-    console.log("Invoice Created:", invoiceData);
-    alert("Invoice saved locally (not sent to backend).");
+    try {
+      await apiClient.post("/invoices", invoiceData);
+      alert("✅ Invoice saved successfully!");
 
-    // Reset form
-    setClient("");
-    setInvoiceDate("");
-    setDueDate("");
-    setRemarks("");
-    setItems([{ name: "", quantity: 1, price: 0 }]);
+      // Reset form
+      setClient("");
+      setInvoiceDate("");
+      setDueDate("");
+      setRemarks("");
+      setItems([{ name: "", quantity: 1, price: 0 }]);
+    } catch (err) {
+      console.error("❌ Failed to save invoice:", err);
+      alert("Failed to save invoice.");
+    }
   };
 
   return (
@@ -123,9 +128,7 @@ function CreateInvoice() {
                     <input
                       type="text"
                       value={item.name}
-                      onChange={(e) =>
-                        handleItemChange(idx, "name", e.target.value)
-                      }
+                      onChange={(e) => handleItemChange(idx, "name", e.target.value)}
                       className="p-1 border rounded w-full"
                       required
                     />
@@ -135,9 +138,7 @@ function CreateInvoice() {
                       type="number"
                       min="1"
                       value={item.quantity}
-                      onChange={(e) =>
-                        handleItemChange(idx, "quantity", e.target.value)
-                      }
+                      onChange={(e) => handleItemChange(idx, "quantity", e.target.value)}
                       className="p-1 border rounded w-20"
                       required
                     />
@@ -148,9 +149,7 @@ function CreateInvoice() {
                       min="0"
                       step="0.01"
                       value={item.price}
-                      onChange={(e) =>
-                        handleItemChange(idx, "price", e.target.value)
-                      }
+                      onChange={(e) => handleItemChange(idx, "price", e.target.value)}
                       className="p-1 border rounded w-24"
                       required
                     />
