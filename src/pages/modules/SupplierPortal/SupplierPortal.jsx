@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import OrdersModule from "./Orders/OrdersModule";
 import ManageAgreements from "./Agreements/ManageAgreements";
 import ShipmentsModule from "./Shipments/ShipmentsModule";
@@ -6,9 +6,7 @@ import ReviewConsumption from "./Inventory/ReviewConsumption";
 import InvoicesPaymentsModule from "./InvoicesPayments/InvoicesPaymentsModule";
 import ManageProfile from "./Profile/ManageProfile";
 import SupplierDashboard from "./SupplierDashboard";
-
-// Simulated role — replace this with a value from localStorage or backend
-const userRole = "admin"; // or "vendor"
+import axios from "axios";
 
 const allTabs = [
   { name: "Orders", component: <OrdersModule />, roles: ["admin", "vendor"] },
@@ -21,6 +19,37 @@ const allTabs = [
 
 const SupplierPortal = () => {
   const [activeTab, setActiveTab] = useState("");
+  const [userRole, setUserRole] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const backendURL = "https://back-7-9sog.onrender.com";
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${backendURL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setUserRole(res.data.role); // 'admin' or 'vendor'
+      } catch (err) {
+        console.error("Error fetching role", err);
+        setUserRole("vendor"); // fallback role
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRole();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="text-center text-blue-900 font-medium py-16">
+        Loading your supplier dashboard...
+      </div>
+    );
+  }
 
   const tabs = allTabs.filter((tab) => tab.roles.includes(userRole));
 
