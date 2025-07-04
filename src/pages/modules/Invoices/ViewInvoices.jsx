@@ -1,229 +1,199 @@
 import React, { useEffect, useState } from "react";
-import apiClient from "../../apiClient";
+import axios from "axios";
+
+const backendURL = "https://back-8.onrender.com/api/invoices"; // your live backend
 
 function ViewInvoices() {
   const [invoices, setInvoices] = useState([]);
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState(null);
-  const [editedInvoice, setEditedInvoice] = useState({});
+  const [selected, setSelected] = useState([]);
+  const [sortField, setSortField] = useState("invoiceDate");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const invoicesPerPage = 5;
 
   useEffect(() => {
     fetchInvoices();
   }, []);
 
   const fetchInvoices = async () => {
-    try {
-      const res = await apiClient.get("/invoices");
-      setInvoices(res.data);
-    } catch (error) {
-      console.error("Failed to fetch invoices", error);
-    }
+    const res = await axios.get(backendURL);
+    setInvoices(res.data);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this invoice?")) return;
-
-    try {
-      await apiClient.delete(`/invoices/${id}`);
-      setInvoices(invoices.filter((inv) => inv._id !== id));
-    } catch (error) {
-      console.error("Delete failed", error);
-    }
+  const toggleSelect = (id) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   };
 
-  const handleEdit = (invoice) => {
-    setEditingId(invoice._id);
-    setEditedInvoice({ ...invoice });
+  const toggleSelectAll = () => {
+    if (selected.length === filtered.length) setSelected([]);
+    else setSelected(filtered.map((inv) => inv._id));
   };
 
-  const handleSaveEdit = async () => {
-    try {
-      await apiClient.put(`/invoices/${editingId}`, editedInvoice);
-      const updated = invoices.map((inv) =>
-        inv._id === editingId ? editedInvoice : inv
-      );
-      setInvoices(updated);
-      setEditingId(null);
-    } catch (err) {
-      console.error("Update failed", err);
-    }
+  const exportToCSV = () => {
+    const rows = selected.map((inv) => ({
+      ID: inv._id,
+      Client: inv.client,
+      Date: inv.invoiceDate,
+      Due: inv.dueDate,
+      Total: inv.total,
+    }));
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      ["ID,Client,Date,Due,Total"]
+        .concat(rows.map((r) => Object.values(r).join(",")))
+        .join("\n");
+
+    const a = document.createElement("a");
+    a.href = encodeURI(csvContent);
+    a.download = "invoices.csv";
+    a.click();
   };
 
-  const handlePrint = (inv) => {
+  const exportToPDF = () => {
+    const selectedInvoices = invoices.filter((inv) => selected.includes(inv._id));
     const printWindow = window.open("", "_blank");
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>Invoice - ${inv._id}</title>
-          <style>
-            body { font-family: Arial; padding: 20px; }
-            h1 { color: #0c4a6e; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            th { background: #f0f8ff; }
-          </style>
-        </head>
-        <body>
-          <h1>Invoice - ${inv._id}</h1>
-          <p><strong>Client:</strong> ${inv.client}</p>
-          <p><strong>Invoice Date:</strong> ${inv.invoiceDate}</p>
-          <p><strong>Due Date:</strong> ${inv.dueDate}</p>
-          <p><strong>Remarks:</strong> ${inv.remarks}</p>
-          <h2>Items</h2>
-          <table>
-            <thead>
-              <tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>
-            </thead>
-            <tbody>
-              ${inv.items
-                .map(
-                  (item) =>
-                    `<tr><td>${item.name}</td><td>${item.quantity}</td><td>${item.price}</td><td>${item.quantity * item.price}</td></tr>`
-                )
-                .join("")}
-            </tbody>
-          </table>
-          <h3>Total: PKR ${inv.total}</h3>
-        </body>
-      </html>
+      <html><head><title>Invoices</title><style>
+        body { font-family: Arial; padding: 20px; }
+        h1 { color: #0c4a6e; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background: #f0f8ff; }
+      </style></head><body>
+        <h1>Invoices (${selectedInvoices.length})</h1>
+        <table><thead>
+        <tr><th>ID</th><th>Client</th><th>Date</th><th>Due</th><th>Total</th></tr>
+        </thead><tbody>
+        ${selectedInvoices
+          .map(
+            (inv) =>
+              `<tr>
+                <td>${inv._id.slice(-6).toUpperCase()}</td>
+                <td>${inv.client}</td>
+                <td>${inv.invoiceDate}</td>
+                <td>${inv.dueDate}</td>
+                <td>PKR ${inv.total}</td>
+              </tr>`
+          )
+          .join("")}
+        </tbody></table></body></html>
     `);
     printWindow.document.close();
     printWindow.print();
   };
 
-  const filtered = invoices.filter(
-    (inv) =>
-      (inv.client || "").toLowerCase().includes(search.toLowerCase()) ||
-      (inv._id || "").toLowerCase().includes(search.toLowerCase())
+  const sortBy = (field) => {
+    const order = sortField === field && sortOrder === "asc" ? "desc" : "asc";
+    setSortField(field);
+    setSortOrder(order);
+  };
+
+  const filtered = invoices
+    .filter((inv) => {
+      const query = search.toLowerCase();
+      return (
+        inv.client?.toLowerCase().includes(query) ||
+        inv._id?.toLowerCase().includes(query) ||
+        inv.invoiceDate?.includes(query)
+      );
+    })
+    .sort((a, b) => {
+      const valA = a[sortField];
+      const valB = b[sortField];
+      return sortOrder === "asc"
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    });
+
+  const pageCount = Math.ceil(filtered.length / invoicesPerPage);
+  const paginated = filtered.slice(
+    (currentPage - 1) * invoicesPerPage,
+    currentPage * invoicesPerPage
   );
 
   return (
     <div className="bg-white p-6 rounded-xl shadow text-gray-800">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-blue-900">View Invoices</h2>
+        <h2 className="text-xl font-bold text-blue-900">Invoices</h2>
         <input
           type="text"
-          placeholder="Search client or ID..."
+          placeholder="Search..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="px-3 py-1 border rounded w-72 text-sm"
+          className="border px-3 py-1 rounded w-64"
         />
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm text-left border">
+      <div className="mb-3 flex gap-3">
+        <button
+          onClick={toggleSelectAll}
+          className="px-3 py-1 border rounded bg-gray-100 text-sm"
+        >
+          {selected.length === filtered.length ? "Unselect All" : "Select All"}
+        </button>
+        <button
+          onClick={exportToCSV}
+          disabled={!selected.length}
+          className="px-3 py-1 border rounded bg-green-100 text-sm"
+        >
+          Export CSV
+        </button>
+        <button
+          onClick={exportToPDF}
+          disabled={!selected.length}
+          className="px-3 py-1 border rounded bg-red-100 text-sm"
+        >
+          Print PDF
+        </button>
+      </div>
+
+      <div className="overflow-x-auto border rounded-lg">
+        <table className="min-w-full text-sm text-left">
           <thead className="bg-blue-100 text-blue-900">
             <tr>
-              <th className="p-2">ID</th>
-              <th className="p-2">Client</th>
-              <th className="p-2">Date</th>
+              <th className="p-2">
+                <input
+                  type="checkbox"
+                  checked={selected.length === filtered.length}
+                  onChange={toggleSelectAll}
+                />
+              </th>
+              <th className="p-2 cursor-pointer" onClick={() => sortBy("_id")}>
+                ID {sortField === "_id" && (sortOrder === "asc" ? "▲" : "▼")}
+              </th>
+              <th className="p-2 cursor-pointer" onClick={() => sortBy("client")}>
+                Client {sortField === "client" && (sortOrder === "asc" ? "▲" : "▼")}
+              </th>
+              <th className="p-2 cursor-pointer" onClick={() => sortBy("invoiceDate")}>
+                Date {sortField === "invoiceDate" && (sortOrder === "asc" ? "▲" : "▼")}
+              </th>
               <th className="p-2">Due</th>
               <th className="p-2">Total</th>
-              <th className="p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((inv) =>
-              editingId === inv._id ? (
-                <tr key={inv._id} className="border-t">
-                  <td className="p-2">{inv._id.slice(-6).toUpperCase()}</td>
-                  <td className="p-2">
-                    <input
-                      value={editedInvoice.client}
-                      onChange={(e) =>
-                        setEditedInvoice({
-                          ...editedInvoice,
-                          client: e.target.value,
-                        })
-                      }
-                      className="border p-1 w-full"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="date"
-                      value={editedInvoice.invoiceDate}
-                      onChange={(e) =>
-                        setEditedInvoice({
-                          ...editedInvoice,
-                          invoiceDate: e.target.value,
-                        })
-                      }
-                      className="border p-1 w-full"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="date"
-                      value={editedInvoice.dueDate}
-                      onChange={(e) =>
-                        setEditedInvoice({
-                          ...editedInvoice,
-                          dueDate: e.target.value,
-                        })
-                      }
-                      className="border p-1 w-full"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <input
-                      type="number"
-                      value={editedInvoice.total}
-                      onChange={(e) =>
-                        setEditedInvoice({
-                          ...editedInvoice,
-                          total: parseFloat(e.target.value),
-                        })
-                      }
-                      className="border p-1 w-24"
-                    />
-                  </td>
-                  <td className="p-2">
-                    <button
-                      onClick={handleSaveEdit}
-                      className="text-green-600 hover:text-green-800 mr-2"
-                    >
-                      ✅
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="text-gray-500 hover:text-gray-800"
-                    >
-                      ❌
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={inv._id} className="border-t hover:bg-gray-50">
-                  <td className="p-2">{inv._id?.slice(-6).toUpperCase()}</td>
-                  <td className="p-2">{inv.client || "—"}</td>
-                  <td className="p-2">{inv.invoiceDate || "—"}</td>
-                  <td className="p-2">{inv.dueDate || "—"}</td>
-                  <td className="p-2">PKR {inv.total?.toLocaleString()}</td>
-                  <td className="p-2 flex gap-2">
-                    <button
-                      onClick={() => handleEdit(inv)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDelete(inv._id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      🗑️
-                    </button>
-                    <button
-                      onClick={() => handlePrint(inv)}
-                      className="text-indigo-600 hover:text-indigo-800"
-                    >
-                      🖨️
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-            {filtered.length === 0 && (
+            {paginated.map((inv) => (
+              <tr key={inv._id} className="border-t hover:bg-gray-50">
+                <td className="p-2">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(inv._id)}
+                    onChange={() => toggleSelect(inv._id)}
+                  />
+                </td>
+                <td className="p-2">{inv._id.slice(-6).toUpperCase()}</td>
+                <td className="p-2">{inv.client}</td>
+                <td className="p-2">{inv.invoiceDate}</td>
+                <td className="p-2">{inv.dueDate}</td>
+                <td className="p-2 font-semibold text-blue-900">
+                  PKR {inv.total}
+                </td>
+              </tr>
+            ))}
+            {!paginated.length && (
               <tr>
                 <td colSpan="6" className="p-4 text-center text-gray-500">
                   No invoices found.
@@ -232,6 +202,23 @@ function ViewInvoices() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-4 flex justify-center gap-2">
+        {Array.from({ length: pageCount }, (_, i) => i + 1).map((num) => (
+          <button
+            key={num}
+            onClick={() => setCurrentPage(num)}
+            className={`px-3 py-1 rounded ${
+              currentPage === num
+                ? "bg-blue-900 text-white"
+                : "bg-gray-200 hover:bg-gray-300"
+            }`}
+          >
+            {num}
+          </button>
+        ))}
       </div>
     </div>
   );
