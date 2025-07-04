@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: "https://back-8.onrender.com/api", // Your backend base
+  baseURL: import.meta.env.VITE_API_BASE_URL + "/api", // Use env variable for base URL
 });
 
 export default apiClient;
