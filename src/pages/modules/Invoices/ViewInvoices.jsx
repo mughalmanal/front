@@ -17,8 +17,13 @@ function ViewInvoices() {
   }, []);
 
   const fetchInvoices = async () => {
-    const res = await axios.get(backendURL);
-    setInvoices(res.data);
+    try {
+      const res = await axios.get(backendURL);
+      setInvoices(res.data);
+    } catch (err) {
+      console.error("Error fetching invoices:", err);
+      alert("Failed to load invoices. Please try again.");
+    }
   };
 
   const toggleSelect = (id) => {
@@ -73,9 +78,9 @@ function ViewInvoices() {
               `<tr>
                 <td>${inv._id.slice(-6).toUpperCase()}</td>
                 <td>${inv.client}</td>
-                <td>${inv.invoiceDate}</td>
-                <td>${inv.dueDate}</td>
-                <td>PKR ${inv.total}</td>
+                <td>${new Date(inv.invoiceDate).toLocaleDateString("en-GB")}</td>
+                <td>${new Date(inv.dueDate).toLocaleDateString("en-GB")}</td>
+                <td>PKR ${inv.total.toLocaleString()}</td>
               </tr>`
           )
           .join("")}
@@ -103,9 +108,16 @@ function ViewInvoices() {
     .sort((a, b) => {
       const valA = a[sortField];
       const valB = b[sortField];
-      return sortOrder === "asc"
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
+
+      if (valA == null || valB == null) return 0;
+
+      if (typeof valA === "string") {
+        return sortOrder === "asc"
+          ? valA.localeCompare(valB)
+          : valB.localeCompare(valA);
+      }
+
+      return sortOrder === "asc" ? valA - valB : valB - valA;
     });
 
   const pageCount = Math.ceil(filtered.length / invoicesPerPage);
@@ -186,10 +198,14 @@ function ViewInvoices() {
                 </td>
                 <td className="p-2">{inv._id.slice(-6).toUpperCase()}</td>
                 <td className="p-2">{inv.client}</td>
-                <td className="p-2">{inv.invoiceDate}</td>
-                <td className="p-2">{inv.dueDate}</td>
+                <td className="p-2">
+                  {new Date(inv.invoiceDate).toLocaleDateString("en-GB")}
+                </td>
+                <td className="p-2">
+                  {new Date(inv.dueDate).toLocaleDateString("en-GB")}
+                </td>
                 <td className="p-2 font-semibold text-blue-900">
-                  PKR {inv.total}
+                  PKR {inv.total?.toLocaleString()}
                 </td>
               </tr>
             ))}
