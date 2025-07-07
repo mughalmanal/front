@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-const backendURL = "https://back-8.onrender.com/api/invoices";
+const backendURL = "https://back-8.onrender.com/api/invoice";
 
 function CreateInvoice() {
   const [client, setClient] = useState("");
