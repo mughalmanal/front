@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-const backendURL = "https://back-8.onrender.com/api/invoices"; // your live backend
+const backendURL = "https://back-8.onrender.com/api/invoice"; // your live backend
 
 function ViewInvoices() {
   const [invoices, setInvoices] = useState([]);
