@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { CSVLink } from "react-csv";
 
-const backendURL = "https://back-8.onrender.com/api/ledgers"; // Update with your backend URL
+const backendURL = "https://back-8.onrender.com/api/report"; // Update with your backend URL
 
 function Reports() {
   const [search, setSearch] = useState("");
