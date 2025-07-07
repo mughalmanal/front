@@ -4,7 +4,7 @@ import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { CSVLink } from "react-csv";
 
-const backendURL = "https://back-8.onrender.com/api/stockIn";
+const backendURL = "https://back-8.onrender.com/api/stock-in";
 
 function StockIn() {
   const [stockInList, setStockInList] = useState([]);
